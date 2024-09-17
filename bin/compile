@@ -1,0 +1,8 @@
+#!/bin/sh
+
+BUILD_DIR=$1
+
+# Example: Install software or run setup commands
+echo "Running custom setup in $BUILD_DIR"
+
+MW_API_URL_FOR_CONFIG_CHECK="https://rhqbf.mw.lc" MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg MW_TARGET=https://rhqbf.mw.lc:443 bash -c "$(curl -L https://install.middleware.io/scripts/deb-install.sh)"
