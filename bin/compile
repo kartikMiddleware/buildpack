@@ -13,7 +13,7 @@ log() {
 }
 
 # Define environment variables
-MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg
+MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg   # TODO: use env variable(heroku config: add key=value)
 
 # Fetch the latest Middleware Agent version
 get_latest_mw_agent_version() {
@@ -27,7 +27,7 @@ MW_VERSION=${MW_VERSION:-$(get_latest_mw_agent_version)}
 log "Downloading Middleware Agent version $MW_VERSION"
 
 # Download the Middleware Agent binary directly
-AGENT_URL="https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent_${MW_VERSION}_amd64"
+AGENT_URL="https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent_${MW_VERSION}_amd64.deb"
 
 # Check if the URL is accessible
 if ! curl --output /dev/null --silent --head --fail "$AGENT_URL"; then
