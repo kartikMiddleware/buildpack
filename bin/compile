@@ -13,7 +13,7 @@ log() {
 }
 
 # Check required commands
-required_commands=("curl" "tee" "sed")
+required_commands=("curl" "tee" "dpkg" "apt-get")
 for cmd in "${required_commands[@]}"; do
   if ! command -v "$cmd" >/dev/null; then
     log "Error: Required command '$cmd' is missing."
@@ -36,15 +36,19 @@ get_latest_mw_agent_version() {
 MW_VERSION=${MW_VERSION:-$(get_latest_mw_agent_version)}
 log "Installing Middleware Agent version $MW_VERSION"
 
-# Download and install Middleware Agent
+# Download Middleware Agent .deb package
+AGENT_URL="https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent_${MW_VERSION}_amd64.deb"
+
+# Check if the URL is accessible
+if ! curl --output /dev/null --silent --head --fail "$AGENT_URL"; then
+  log "Error: Middleware Agent binary not found at $AGENT_URL"
+  exit 1
+fi
+
 log "Downloading Middleware Agent..."
-curl -L -o "$BUILD_DIR/mw-agent.tar.gz" "https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent-$MW_VERSION-linux-amd64.tar.gz"
+curl -L -o "$BUILD_DIR/mw-agent.deb" "$AGENT_URL"
 
-log "Extracting Middleware Agent..."
-tar -xzf "$BUILD_DIR/mw-agent.tar.gz" -C "$BUILD_DIR"
-
-log "Moving Middleware Agent to $MW_AGENT_HOME..."
-mkdir -p "$MW_AGENT_HOME"
-mv "$BUILD_DIR/mw-agent" "$MW_AGENT_HOME/"
+log "Installing Middleware Agent..."
+dpkg -i "$BUILD_DIR/mw-agent.deb" || { log "Error: Failed to install Middleware Agent."; exit 1; }
 
 log "Middleware Agent installation completed successfully."
