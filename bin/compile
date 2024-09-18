@@ -13,7 +13,7 @@ log() {
 }
 
 # Check required commands
-required_commands=("curl" "tee" "sed" "apt-get")
+required_commands=("curl" "tee" "sed")
 for cmd in "${required_commands[@]}"; do
   if ! command -v "$cmd" >/dev/null; then
     log "Error: Required command '$cmd' is missing."
@@ -21,14 +21,9 @@ for cmd in "${required_commands[@]}"; do
   fi
 done
 
-# Prepare the directories
-mkdir -p "$BUILD_DIR/.apt"
-
 # Define environment variables
 MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg
 MW_AGENT_HOME=${MW_AGENT_HOME:-/opt/mw-agent}
-MW_APT_LIST=${MW_APT_LIST:-mw-agent.list}
-MW_AGENT_BINARY=${MW_AGENT_BINARY:-mw-agent}
 
 # Fetch the latest Middleware Agent version
 get_latest_mw_agent_version() {
@@ -41,28 +36,15 @@ get_latest_mw_agent_version() {
 MW_VERSION=${MW_VERSION:-$(get_latest_mw_agent_version)}
 log "Installing Middleware Agent version $MW_VERSION"
 
-# Add APT repository
-log "Adding Middleware Agent APT repository..."
-echo "deb [signed-by=/tmp/middleware-keyring.gpg] https://apt.middleware.io/public stable main" | tee "$BUILD_DIR/$MW_APT_LIST"
+# Download and install Middleware Agent
+log "Downloading Middleware Agent..."
+curl -L -o "$BUILD_DIR/mw-agent.tar.gz" "https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent-$MW_VERSION-linux-amd64.tar.gz"
 
-# Add the GPG key to a writable location
-log "Fetching GPG key..."
-if ! curl -fsSL https://apt.middleware.io/gpg-keys/mw-agent-apt-public.key | gpg --dearmor -o "/tmp/middleware-keyring.gpg"; then
-  log "Error: Failed to fetch GPG key."
-  exit 1
-fi
+log "Extracting Middleware Agent..."
+tar -xzf "$BUILD_DIR/mw-agent.tar.gz" -C "$BUILD_DIR"
 
-# Update APT and install the agent
-log "Updating APT package lists..."
-if ! apt-get update -o Dir::Etc::sourcelist="sources.list.d/$MW_APT_LIST" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"; then
-  log "Error: Failed to update APT package lists."
-  exit 1
-fi
-
-log "Installing Middleware Agent..."
-if ! apt-get install -y "$MW_AGENT_BINARY=$MW_VERSION"; then
-  log "Error: Failed to install Middleware Agent."
-  exit 1
-fi
+log "Moving Middleware Agent to $MW_AGENT_HOME..."
+mkdir -p "$MW_AGENT_HOME"
+mv "$BUILD_DIR/mw-agent" "$MW_AGENT_HOME/"
 
 log "Middleware Agent installation completed successfully."
