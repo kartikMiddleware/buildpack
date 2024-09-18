@@ -26,7 +26,7 @@ heroku config:add MW_TARGET=https://rhqbf.mw.lc:443
 
 - Add this buildpack and set your Datadog API key
 ```bash
-heroku buildpacks:add --index 1 https://github.com/kartikMiddleware/buildpack
+heroku buildpacks:add --index 1 https://github.com/kartikMiddleware/buildpack.git
 ```
 
 - Deploy to Heroku forcing a rebuild
