@@ -12,18 +12,8 @@ log() {
   echo "$(date +%Y-%m-%d\ %H:%M:%S) - $1"
 }
 
-# Check required commands
-required_commands=("curl" "tee" "dpkg" "apt-get")
-for cmd in "${required_commands[@]}"; do
-  if ! command -v "$cmd" >/dev/null; then
-    log "Error: Required command '$cmd' is missing."
-    exit 1
-  fi
-done
-
 # Define environment variables
-MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg
-MW_AGENT_HOME=${MW_AGENT_HOME:-/opt/mw-agent}
+MW_API_KEY=${MW_API_KEY:?Environment variable MW_API_KEY is required.}
 
 # Fetch the latest Middleware Agent version
 get_latest_mw_agent_version() {
@@ -34,10 +24,10 @@ get_latest_mw_agent_version() {
 }
 
 MW_VERSION=${MW_VERSION:-$(get_latest_mw_agent_version)}
-log "Installing Middleware Agent version $MW_VERSION"
+log "Downloading Middleware Agent version $MW_VERSION"
 
-# Download Middleware Agent .deb package
-AGENT_URL="https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent_${MW_VERSION}_amd64.deb"
+# Download the Middleware Agent binary directly
+AGENT_URL="https://github.com/middleware-labs/mw-agent/releases/download/$MW_VERSION/mw-agent_${MW_VERSION}_amd64"
 
 # Check if the URL is accessible
 if ! curl --output /dev/null --silent --head --fail "$AGENT_URL"; then
@@ -46,9 +36,7 @@ if ! curl --output /dev/null --silent --head --fail "$AGENT_URL"; then
 fi
 
 log "Downloading Middleware Agent..."
-curl -L -o "$BUILD_DIR/mw-agent.deb" "$AGENT_URL"
+curl -L -o "$BUILD_DIR/mw-agent" "$AGENT_URL"
+chmod +x "$BUILD_DIR/mw-agent"  # Make it executable
 
-log "Installing Middleware Agent..."
-dpkg -i "$BUILD_DIR/mw-agent.deb" || { log "Error: Failed to install Middleware Agent."; exit 1; }
-
-log "Middleware Agent installation completed successfully."
+log "Middleware Agent downloaded successfully."
