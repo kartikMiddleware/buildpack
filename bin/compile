@@ -33,7 +33,8 @@ MW_AGENT_BINARY=${MW_AGENT_BINARY:-mw-agent}
 # Fetch the latest Middleware Agent version
 get_latest_mw_agent_version() {
   local repo="middleware-labs/mw-agent"
-  local latest_version=$(curl --silent "https://api.github.com/repos/$repo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  local latest_version
+  latest_version=$(curl --silent "https://api.github.com/repos/$repo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
   echo "${latest_version:-1.6.6}"
 }
 
@@ -42,15 +43,21 @@ log "Installing Middleware Agent version $MW_VERSION"
 
 # Add APT repository
 log "Adding Middleware Agent APT repository..."
-echo "deb [signed-by=/usr/share/keyrings/middleware-keyring.gpg] https://apt.middleware.io/public stable main" | tee "$BUILD_DIR/$MW_APT_LIST"
+echo "deb [signed-by=/tmp/middleware-keyring.gpg] https://apt.middleware.io/public stable main" | tee "$BUILD_DIR/$MW_APT_LIST"
 
-# Add the GPG key
+# Add the GPG key to a writable location
 log "Fetching GPG key..."
-curl -fsSL https://apt.middleware.io/gpg-keys/mw-agent-apt-public.key | gpg --dearmor -o "/usr/share/keyrings/middleware-keyring.gpg"
+if ! curl -fsSL https://apt.middleware.io/gpg-keys/mw-agent-apt-public.key | gpg --dearmor -o "/tmp/middleware-keyring.gpg"; then
+  log "Error: Failed to fetch GPG key."
+  exit 1
+fi
 
 # Update APT and install the agent
 log "Updating APT package lists..."
-apt-get update
+if ! apt-get update -o Dir::Etc::sourcelist="sources.list.d/$MW_APT_LIST" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"; then
+  log "Error: Failed to update APT package lists."
+  exit 1
+fi
 
 log "Installing Middleware Agent..."
 if ! apt-get install -y "$MW_AGENT_BINARY=$MW_VERSION"; then
