@@ -25,7 +25,7 @@ done
 mkdir -p "$BUILD_DIR/.apt"
 
 # Define environment variables
-MW_API_KEY=${MW_API_KEY:?Environment variable MW_API_KEY is required.}
+MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg
 MW_AGENT_HOME=${MW_AGENT_HOME:-/opt/mw-agent}
 MW_APT_LIST=${MW_APT_LIST:-mw-agent.list}
 MW_AGENT_BINARY=${MW_AGENT_BINARY:-mw-agent}
