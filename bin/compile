@@ -1,8 +1,61 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir>
+
+set -e
+set -o pipefail
 
 BUILD_DIR=$1
+CACHE_DIR=$2
 
-# Example: Install software or run setup commands
-echo "Running custom setup in $BUILD_DIR"
+# Function to log messages
+log() {
+  echo "$(date +%Y-%m-%d\ %H:%M:%S) - $1"
+}
 
-MW_API_URL_FOR_CONFIG_CHECK="https://rhqbf.mw.lc" MW_API_KEY=kxtgxquehpxpwvrctbvmllaqwovspakftggg MW_TARGET=https://rhqbf.mw.lc:443 bash -c "$(curl -L https://install.middleware.io/scripts/deb-install.sh)"
+# Check required commands
+required_commands=("curl" "tee" "sed" "apt-get")
+for cmd in "${required_commands[@]}"; do
+  if ! command -v "$cmd" >/dev/null; then
+    log "Error: Required command '$cmd' is missing."
+    exit 1
+  fi
+done
+
+# Prepare the directories
+mkdir -p "$BUILD_DIR/.apt"
+
+# Define environment variables
+MW_API_KEY=${MW_API_KEY:?Environment variable MW_API_KEY is required.}
+MW_AGENT_HOME=${MW_AGENT_HOME:-/opt/mw-agent}
+MW_APT_LIST=${MW_APT_LIST:-mw-agent.list}
+MW_AGENT_BINARY=${MW_AGENT_BINARY:-mw-agent}
+
+# Fetch the latest Middleware Agent version
+get_latest_mw_agent_version() {
+  local repo="middleware-labs/mw-agent"
+  local latest_version=$(curl --silent "https://api.github.com/repos/$repo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  echo "${latest_version:-1.6.6}"
+}
+
+MW_VERSION=${MW_VERSION:-$(get_latest_mw_agent_version)}
+log "Installing Middleware Agent version $MW_VERSION"
+
+# Add APT repository
+log "Adding Middleware Agent APT repository..."
+echo "deb [signed-by=/usr/share/keyrings/middleware-keyring.gpg] https://apt.middleware.io/public stable main" | tee "$BUILD_DIR/$MW_APT_LIST"
+
+# Add the GPG key
+log "Fetching GPG key..."
+curl -fsSL https://apt.middleware.io/gpg-keys/mw-agent-apt-public.key | gpg --dearmor -o "/usr/share/keyrings/middleware-keyring.gpg"
+
+# Update APT and install the agent
+log "Updating APT package lists..."
+apt-get update
+
+log "Installing Middleware Agent..."
+if ! apt-get install -y "$MW_AGENT_BINARY=$MW_VERSION"; then
+  log "Error: Failed to install Middleware Agent."
+  exit 1
+fi
+
+log "Middleware Agent installation completed successfully."
